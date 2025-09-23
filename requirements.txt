@@ -1,0 +1,15 @@
+﻿fastapi
+uvicorn
+python-dotenv
+pydantic
+langchain
+langchain-community
+langchain-core
+langchain-openai
+openai
+chromadb
+PyMuPDF
+pdfminer.six
+pypdf
+asyncpg
+SQLAlchemy>=2.0

@@ -1,0 +1,55 @@
+﻿services:
+  postgres-test:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-chatbot_test}
+    ports:
+      - "${TEST_DB_PORT:-55432}:5432"
+    volumes:
+      - pgdata_test:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-chatbot_test}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - chatbotnet_test
+
+  chatbot-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o}
+      PERSIST_DIR: ${PERSIST_DIR:-/app/chroma_saask_test}
+      DEFAULT_SOURCES: ${DEFAULT_SOURCES:-}
+      DEFAULT_TENANT_ID: ${DEFAULT_TENANT_ID:-pilot}
+      TENANT_CONFIG_PATH: ${TENANT_CONFIG_PATH:-/app/tenant-config.json}
+      INIT_LLM_ON_STARTUP: "true"
+      INIT_VECTOR_ON_STARTUP: "true"
+      DB_HOST: postgres-test
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-chatbot_test}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${TEST_APP_PORT:-5010}:8000"
+    networks:
+      - chatbotnet_test
+    volumes:
+      - .:/app
+      - ${TENANT_CONFIG_FILE:-./tenant-config.json}:/app/tenant-config.json:ro
+
+volumes:
+  pgdata_test:
+
+networks:
+  chatbotnet_test:

@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - ${DB_PORT_SECURED}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - chatbotnet
+
+  chatbot:
+    build: .
+    depends_on:
+      - postgres
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASS: ${POSTGRES_PASSWORD}
+    ports:
+      - "5008:8000"
+    networks:
+      - chatbotnet
+    volumes:
+      - .:/app
+
+volumes:
+  pgdata:
+
+networks:
+  chatbotnet:

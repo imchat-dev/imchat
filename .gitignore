@@ -1,0 +1,22 @@
+# Environment files
+.env
+.env.example
+.envexample
+# Python cache
+__pycache__/
+**/__pycache__/
+
+# SQLite databases
+*.sqlite3
+
+# SQL scripts
+*.sql
+
+# Binary blobs
+*.bin
+
+init.sql
+tenant-config.json
+tenant-config.example.json
+*.pdf
+*.js
