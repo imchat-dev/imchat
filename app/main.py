@@ -26,12 +26,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.include_router(chat_router, prefix="/chat", tags=["chat"])
-# app.include_router(sessions_router, prefix="/chat", tags=["sessions"])  # Removed - using tenant-based endpoints
+# Register specific routes before generic ones to avoid conflicts
 app.include_router(tenants_router, prefix="/chat", tags=["tenants"])
 app.include_router(tenant_sessions_router, prefix="/chat", tags=["tenant-sessions"])
 app.include_router(tenant_messages_router, prefix="/chat", tags=["tenant-messages"])
 app.include_router(tenant_docs_router, prefix="/chat", tags=["tenant-docs"])
+# app.include_router(sessions_router, prefix="/chat", tags=["sessions"])  # Removed - using tenant-based endpoints
+app.include_router(chat_router, prefix="/chat", tags=["chat"])
 app.include_router(downloads_router, tags=["downloads"])
 app.include_router(health_router, tags=["health"])
 

@@ -42,7 +42,7 @@ def _validate_uuid(uuid_str: str, field_name: str) -> uuid.UUID:
         raise HTTPException(status_code=400, detail=f"Gecersiz {field_name} format")
 
 
-@router.post("/tenant/{tenant_id}/docs", response_model=DocumentResponse)
+@router.post("/{tenant_id}/docs", response_model=DocumentResponse)
 async def upload_document(tenant_id: str, request: Request, payload: DocumentUploadRequest):
     """Upload a document for a tenant"""
     session_factory = _get_session_factory(request)
@@ -89,7 +89,7 @@ async def upload_document(tenant_id: str, request: Request, payload: DocumentUpl
             )
 
 
-@router.get("/tenant/{tenant_id}/docs", response_model=List[DocumentResponse])
+@router.get("/{tenant_id}/docs", response_model=List[DocumentResponse])
 async def get_documents(
     tenant_id: str, 
     request: Request,
@@ -136,7 +136,7 @@ async def get_documents(
         ]
 
 
-@router.get("/tenant/{tenant_id}/docs/{doc_id}", response_model=DocumentResponse)
+@router.get("/{tenant_id}/docs/{doc_id}", response_model=DocumentResponse)
 async def get_document(tenant_id: str, doc_id: str, request: Request):
     """Get a specific document"""
     session_factory = _get_session_factory(request)
@@ -167,7 +167,7 @@ async def get_document(tenant_id: str, doc_id: str, request: Request):
         )
 
 
-@router.delete("/tenant/{tenant_id}/docs/{doc_id}")
+@router.delete("/{tenant_id}/docs/{doc_id}")
 async def delete_document(tenant_id: str, doc_id: str, request: Request):
     """Delete a document"""
     session_factory = _get_session_factory(request)

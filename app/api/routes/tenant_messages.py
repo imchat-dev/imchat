@@ -42,7 +42,7 @@ def _validate_uuid(uuid_str: str, field_name: str) -> uuid.UUID:
         raise HTTPException(status_code=400, detail=f"Gecersiz {field_name} format")
 
 
-@router.post("/tenant/{tenant_id}/sessions/{session_id}/messages", response_model=MessageResponse)
+@router.post("/{tenant_id}/sessions/{session_id}/messages", response_model=MessageResponse)
 async def create_message(
     tenant_id: str, 
     session_id: str, 
@@ -100,7 +100,7 @@ async def create_message(
             )
 
 
-@router.get("/tenant/{tenant_id}/sessions/{session_id}/messages", response_model=List[MessageResponse])
+@router.get("/{tenant_id}/sessions/{session_id}/messages", response_model=List[MessageResponse])
 async def get_messages(
     tenant_id: str, 
     session_id: str, 
@@ -157,7 +157,7 @@ async def get_messages(
         ]
 
 
-@router.delete("/tenant/{tenant_id}/sessions/{session_id}/messages/{message_id}")
+@router.delete("/{tenant_id}/sessions/{session_id}/messages/{message_id}")
 async def delete_message(
     tenant_id: str, 
     session_id: str, 

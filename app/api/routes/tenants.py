@@ -35,7 +35,7 @@ def _to_iso_with_tz(dt) -> Optional[str]:
         return str(dt)
 
 
-@router.post("/tenant", response_model=TenantResponse)
+@router.post("/", response_model=TenantResponse)
 async def create_tenant(request: Request, payload: TenantCreateRequest):
     """Create a new tenant"""
     session_factory = _get_session_factory(request)
@@ -73,7 +73,7 @@ async def create_tenant(request: Request, payload: TenantCreateRequest):
                 raise HTTPException(status_code=400, detail="Tenant olusturulamadi") from exc
 
 
-@router.get("/tenant/{tenant_id}", response_model=TenantResponse)
+@router.get("/{tenant_id}", response_model=TenantResponse)
 async def get_tenant(tenant_id: str, request: Request):
     """Get tenant information"""
     session_factory = _get_session_factory(request)
@@ -99,7 +99,7 @@ async def get_tenant(tenant_id: str, request: Request):
         )
 
 
-@router.get("/tenants", response_model=List[TenantResponse])
+@router.get("/list", response_model=List[TenantResponse])
 async def list_tenants(request: Request, limit: int = 100, offset: int = 0):
     """List all tenants"""
     session_factory = _get_session_factory(request)

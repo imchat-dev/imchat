@@ -42,7 +42,7 @@ def _validate_uuid(uuid_str: str, field_name: str) -> uuid.UUID:
         raise HTTPException(status_code=400, detail=f"Gecersiz {field_name} format")
 
 
-@router.post("/tenant/{tenant_id}/sessions", response_model=SessionResponse)
+@router.post("/{tenant_id}/sessions", response_model=SessionResponse)
 async def create_session(tenant_id: str, request: Request, payload: SessionCreateRequest):
     """Create a new session for a tenant"""
     session_factory = _get_session_factory(request)
@@ -91,7 +91,7 @@ async def create_session(tenant_id: str, request: Request, payload: SessionCreat
             )
 
 
-@router.get("/tenant/{tenant_id}/sessions", response_model=List[SessionResponse])
+@router.get("/{tenant_id}/sessions", response_model=List[SessionResponse])
 async def get_sessions(
     tenant_id: str, 
     request: Request, 
@@ -130,7 +130,7 @@ async def get_sessions(
         ]
 
 
-@router.get("/tenant/{tenant_id}/sessions/{session_id}", response_model=SessionResponse)
+@router.get("/{tenant_id}/sessions/{session_id}", response_model=SessionResponse)
 async def get_session(tenant_id: str, session_id: str, request: Request):
     """Get a specific session"""
     session_factory = _get_session_factory(request)
@@ -160,7 +160,7 @@ async def get_session(tenant_id: str, session_id: str, request: Request):
         )
 
 
-@router.delete("/tenant/{tenant_id}/sessions/{session_id}")
+@router.delete("/{tenant_id}/sessions/{session_id}")
 async def delete_session(tenant_id: str, session_id: str, request: Request):
     """Delete a session"""
     session_factory = _get_session_factory(request)
