@@ -37,7 +37,7 @@ class ChatService:
     def __init__(
         self,
         session_factory: async_sessionmaker[AsyncSession],
-        tenant_ids: list[str],
+        tenant_ids: list[uuid.UUID],
         vector=None,
         llm=None,
         tool_manager=None,  # Tool calling disabled
@@ -72,21 +72,23 @@ class ChatService:
                 payload.question,
                 max_length=settings.max_user_prompt_length,
             )
-            safe_tenant_id = sanitize_identifier(str(tenant_id), label="tenant_id")
+            # Convert tenant_id to UUID if it's a string
+            tenant_uuid = uuid.UUID(tenant_id) if isinstance(tenant_id, str) else tenant_id
+            safe_tenant_id = str(tenant_uuid)
             safe_request_id = (
                 sanitize_identifier(str(payload.request_id), label="request_id")
                 if payload.request_id
                 else str(uuid.uuid4())
             )
-        except SecurityError as exc:
+        except (SecurityError, ValueError) as exc:
             logger.warning("Blocked unsafe chat payload: %s", exc)
             raise HTTPException(
                 status_code=400,
                 detail="Guvenlik kontrolleri istegi reddetti.",
             ) from exc
 
-        # Check if tenant exists
-        if safe_tenant_id not in self.tenant_ids:
+        # Check if tenant exists (convert string back to UUID for comparison)
+        if tenant_uuid not in self.tenant_ids:
             raise HTTPException(status_code=404, detail="Tenant bulunamadi")
 
         payload = payload.copy(

@@ -1,11 +1,14 @@
 ﻿# app/core/lifespan.py
 from contextlib import asynccontextmanager
 import logging
+import uuid
 
+from sqlalchemy import select
 from app.adapters.vectorstores.chroma_adapter import build_or_refresh_index, load_or_create_chroma
 from app.core.config import settings
 from app.core.db import create_engine_and_sessionmaker
 from app.core.rate_limit import RateLimiter
+from app.models.db_models import Tenant
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +17,24 @@ def _split_sources(raw: str) -> list[str]:
     return [s.strip() for s in raw.split(",") if s.strip()]
 
 
+async def _get_tenant_ids_from_db(session_factory):
+    """Get all tenant UUIDs from database"""
+    async with session_factory() as session:
+        stmt = select(Tenant.id)
+        result = await session.execute(stmt)
+        tenant_uuids = result.scalars().all()
+        return list(tenant_uuids)
+
+
 def _get_default_tenant_ids():
-    """Get list of tenant IDs to initialize"""
-    return [settings.default_tenant_id]
+    """Get list of tenant IDs to initialize (fallback)"""
+    try:
+        # Try to parse default_tenant_id as UUID
+        return [uuid.UUID(settings.default_tenant_id)]
+    except ValueError:
+        # If it's not a valid UUID, return empty list
+        logger.warning("default_tenant_id is not a valid UUID: %s", settings.default_tenant_id)
+        return []
 
 
 @asynccontextmanager
@@ -26,8 +44,26 @@ async def lifespan(app):
     app.state.db_sessionmaker = session_factory
     logger.info("SQLAlchemy engine and session factory created.")
 
-    # Store simple tenant list
-    tenant_ids = _get_default_tenant_ids()
+    # Load tenant IDs from database
+    try:
+        tenant_ids = await _get_tenant_ids_from_db(session_factory)
+        if not tenant_ids:
+            logger.warning("No tenants found in database. Using default tenant.")
+            # Get or create default tenant
+            async with session_factory() as session:
+                async with session.begin():
+                    stmt = select(Tenant).where(Tenant.name == settings.default_tenant_id)
+                    result = await session.execute(stmt)
+                    default_tenant = result.scalar_one_or_none()
+                    if default_tenant:
+                        tenant_ids = [default_tenant.id]
+                    else:
+                        logger.error("Default tenant not found. Please run migrations first.")
+                        tenant_ids = _get_default_tenant_ids()
+    except Exception as e:
+        logger.error("Failed to load tenant IDs: %s", e)
+        tenant_ids = _get_default_tenant_ids()
+    
     app.state.tenant_ids = tenant_ids
     logger.info("Initialized with %d tenant(s): %s", len(tenant_ids), tenant_ids)
 
@@ -52,17 +88,17 @@ async def lifespan(app):
                         build_or_refresh_index(
                             sources=default_sources,
                             persist_dir=settings.persist_dir,
-                            tenant_id=tenant_id,
-                            collection_name=tenant_id,  # Use tenant_id as collection name
+                            tenant_id=str(tenant_id),
+                            collection_name=str(tenant_id),  # Use tenant_id as collection name
                         )
                     if default_collection_id is None:
-                        default_collection_id = tenant_id
+                        default_collection_id = str(tenant_id)
                 logger.info("Vector collections prepared.")
             except Exception as e:  # pragma: no cover
                 logger.warning("Vector collection build failed: %s", e)
             
             if default_collection_id is None and tenant_ids:
-                default_collection_id = tenant_ids[0]
+                default_collection_id = str(tenant_ids[0])
                 
             app.state.vectorstore = load_or_create_chroma(
                 settings.persist_dir,

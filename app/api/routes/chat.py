@@ -1,4 +1,5 @@
 # app/api/routes/chat.py
+import uuid
 from fastapi import APIRouter, HTTPException, Request
 
 from app.core.config import settings
@@ -20,15 +21,13 @@ async def chat_endpoint(tenant: str, request: Request, payload: ChatRequest):
         raise HTTPException(status_code=503, detail="Tenant listesi bulunamadi")
 
     try:
-        safe_tenant = sanitize_identifier(tenant, label="tenant")
-    except SecurityError as exc:
-        raise HTTPException(status_code=400, detail="Gecersiz tenant") from exc
-
-    # Use tenant from URL path, fallback to payload or header
-    tenant_id = safe_tenant or payload.tenant_id or request.headers.get("x-tenant-id") or settings.default_tenant_id
+        # Validate UUID format
+        tenant_uuid = uuid.UUID(tenant)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Gecersiz tenant ID format")
     
-    # Check if tenant exists
-    if tenant_id not in tenant_ids:
+    # Check if tenant exists in database (tenant_ids should be UUIDs)
+    if tenant_uuid not in tenant_ids:
         raise HTTPException(status_code=404, detail="Tenant bulunamadi")
 
     vector = getattr(request.app.state, "vectorstore", None)
@@ -44,5 +43,5 @@ async def chat_endpoint(tenant: str, request: Request, payload: ChatRequest):
     return await service.handle_chat(
         request=request,
         payload=payload,
-        tenant_id=tenant_id,
+        tenant_id=str(tenant_uuid),  # Pass as UUID string
     )
