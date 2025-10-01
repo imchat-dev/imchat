@@ -123,5 +123,20 @@ def retrieve_context(
     k: int = 6,
 ) -> str:
     filters = _build_filter(tenant_id, profile_key)
+    # Diagnostics for quick triage
+    persist_dir = getattr(vector, "_persist_directory", None) or getattr(vector, "persist_directory", None) or settings.persist_dir
+    collection_name = getattr(vector, "collection_name", None)
+    if collection_name is None:
+        collection = getattr(vector, "_collection", None)
+        collection_name = getattr(collection, "name", None)
+    print(
+        "[retrieve_context] persist_dir=", persist_dir,
+        "collection=", collection_name,
+        "k=", k,
+        "filter=", filters,
+        "tenant=", tenant_id,
+        "profile=", profile_key,
+    )
     docs = vector.similarity_search(query, k=k, filter=filters)
+    print("[retrieve_context] found_docs=", len(docs))
     return "\n\n".join([d.page_content for d in docs])

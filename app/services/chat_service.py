@@ -1,4 +1,4 @@
-﻿# app/services/chat_service.py
+# app/services/chat_service.py
 from __future__ import annotations
 
 import logging
@@ -26,7 +26,7 @@ from app.repositories.session_repo import SessionRepo
 from app.services.memory_service import MemoryService
 from app.services.rag_service import RagService
 from app.services.title_service import TitleService
-from app.services.tool_service import ToolManager
+# from app.services.tool_service import ToolManager  # Tool calling disabled
 
 logger = logging.getLogger(__name__)
 
@@ -40,15 +40,16 @@ class ChatService:
         tenant_registry: TenantConfigRegistry,
         vector=None,
         llm=None,
+        tool_manager=None,  # Tool calling disabled
     ) -> None:
         self.session_factory = session_factory
         self.tenant_registry = tenant_registry
-        self.tool_manager = ToolManager()
+        # self.tool_manager = tool_manager or ToolManager()  # Tool calling disabled
         self.rag = RagService(
             session_factory,
             vector=vector,
             llm=llm,
-            tool_manager=self.tool_manager,
+            tool_manager=None,  # Tool calling disabled
         )
         self.memory = MemoryService(session_factory)
         self.title = TitleService(session_factory)
@@ -155,13 +156,15 @@ class ChatService:
             profile_key=safe_profile_key,
             profile_config=profile_config,
         )
-        answer = await self.rag.answer(
+        answer_result = await self.rag.answer(
             question=payload.question,
             tenant_id=safe_tenant_id,
             profile_key=safe_profile_key,
             profile_config=profile_config,
             memory_text=memory_text,
         )
+        answer_text = (answer_result.text or "").strip()
+        file_payload = answer_result.files
         latency_ms = int((time.perf_counter() - t0) * 1000)
 
         async with self.session_factory() as session:
@@ -172,7 +175,7 @@ class ChatService:
                     profile_key=safe_profile_key,
                     session_id=session_id,
                     role="assistant",
-                    content=answer,
+                    content=answer_text,
                     model=settings.llm_model,
                     latency_ms=latency_ms,
                     usage=None,
@@ -184,7 +187,7 @@ class ChatService:
                     profile_key=safe_profile_key,
                     session_id=session_id,
                     req=payload,
-                    answer=answer,
+                    answer=answer_text,
                     request_id=request_id,
                     client_ip=client_ip,
                     user_agent=user_agent,
@@ -201,12 +204,13 @@ class ChatService:
                 )
 
         return ChatResponse(
-            answer=answer,
+            answer=answer_text,
+            files=file_payload,
             profile_key=safe_profile_key,
             session_id=session_id,
             session_title=self._fallback_title(payload.question),
             last_activity=self._utcnow_iso(),
-            preview=self._make_preview(answer),
+            preview=self._make_preview(answer_text),
             message_id=msg_id,
         )
 
@@ -263,3 +267,4 @@ class ChatService:
         if len(sanitized) > 80:
             sanitized = sanitized[:80].rstrip()
         return sanitized
+

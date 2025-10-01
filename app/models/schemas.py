@@ -4,6 +4,13 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 
+class FileAttachment(BaseModel):
+    name: str
+    type: str
+    encoding: str
+    data: str
+
+
 class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -18,6 +25,7 @@ class ChatResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     answer: str
+    files: Optional[FileAttachment] = None
     status: str = "success"
     profile_key: Optional[str] = None
     session_id: Optional[str] = None

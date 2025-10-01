@@ -2,7 +2,7 @@ import chromadb
 from chromadb.config import Settings
 from pprint import pprint
 
-persist_dir = r"C:\Users\impark-eray\Desktop\impark\dijidemi-chatbot\chroma_db"
+persist_dir = r"C:\Users\impark-eray\Desktop\Eray\imchat\chroma_db"
 client = chromadb.PersistentClient(path=persist_dir, settings=Settings())
 
 collections = client.list_collections()

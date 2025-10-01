@@ -29,7 +29,7 @@ class Settings(BaseModel):
     max_user_prompt_length: int = int(os.getenv("MAX_USER_PROMPT_LENGTH", "4000"))
 
     default_tenant_id: str = os.getenv("DEFAULT_TENANT_ID", "pilot")
-    tenant_config_path: Optional[str] = os.getenv("TENANT_CONFIG_PATH")
+    # tenant_config_path: Optional[str] = os.getenv("TENANT_CONFIG_PATH")  # Disabled - using fallback config
 
 
 settings = Settings()

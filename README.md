@@ -1,4 +1,4 @@
-﻿## Dijidemi Chatbot - Backend Teknik Dokumantasyonu
+﻿## Chatbot - Backend Teknik Dokumantasyonu
 
 ### Mimari Genel Bakis
 

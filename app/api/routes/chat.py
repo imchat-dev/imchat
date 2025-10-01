@@ -1,10 +1,11 @@
-﻿# app/api/routes/chat.py
+# app/api/routes/chat.py
 from fastapi import APIRouter, HTTPException, Request
 
 from app.core.config import settings
 from app.core.security import sanitize_identifier, SecurityError
 from app.models.schemas import ChatRequest, ChatResponse
 from app.services.chat_service import ChatService
+from app.services.tool_service import ToolManager
 
 router = APIRouter()
 
@@ -38,6 +39,7 @@ async def chat_endpoint(profile_key: str, request: Request, payload: ChatRequest
         tenant_registry=registry,
         vector=vector,
         llm=llm,
+        tool_manager=ToolManager(),
     )
     return await service.handle_chat(
         request=request,

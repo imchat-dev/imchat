@@ -22,7 +22,7 @@ RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
 # Port aç
-EXPOSE 8000
+EXPOSE 5010
 
 # Uygulamayı başlat
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

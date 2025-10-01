@@ -6,17 +6,13 @@
 __pycache__/
 **/__pycache__/
 
-# SQLite databases
-*.sqlite3
-
-# SQL scripts
-*.sql
+init.sql
 
 # Binary blobs
 *.bin
-
-init.sql
-tenant-config.json
-tenant-config.example.json
 *.pdf
-*.js
+*.sql
+*.sqlite3
+init.sql
+
+

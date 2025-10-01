@@ -6,7 +6,7 @@ from app.adapters.vectorstores.chroma_adapter import build_or_refresh_index, loa
 from app.core.config import settings
 from app.core.db import create_engine_and_sessionmaker
 from app.core.rate_limit import RateLimiter
-from app.core.tenant_config import ProfileConfig, TenantConfig, build_registry
+from app.core.tenant_config import ProfileConfig, TenantConfig
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ def _default_tenant_fallback():
             display_name=key.capitalize(),
             vector_collection=f"{settings.default_tenant_id}_{key}",
             source_paths=default_sources,
+            tools=[],  # No tools enabled
         )
         for key in profile_keys
     }
@@ -44,14 +45,10 @@ async def lifespan(app):
     app.state.db_sessionmaker = session_factory
     logger.info("SQLAlchemy engine and session factory created.")
 
-    fallback_configs = _default_tenant_fallback()
-    try:
-        tenant_registry = build_registry(settings.tenant_config_path, fallback=fallback_configs)
-    except Exception as exc:  # pragma: no cover - configuration failure should crash startup
-        logger.error("Failed to load tenant configuration: %s", exc)
-        raise
+    # Use fallback configuration instead of loading from file
+    tenant_registry = _default_tenant_fallback()
     app.state.tenant_registry = tenant_registry
-    logger.info("Tenant configuration loaded with %d tenant(s).", len(tenant_registry))
+    logger.info("Using fallback tenant configuration with %d tenant(s).", len(tenant_registry))
 
     app.state.rate_limiter = RateLimiter(
         max_requests=settings.rate_limit_max_requests,
