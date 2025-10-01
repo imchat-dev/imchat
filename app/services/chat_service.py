@@ -1,4 +1,4 @@
-# app/services/chat_service.py
+﻿# app/services/chat_service.py
 from __future__ import annotations
 
 import logging
@@ -19,7 +19,7 @@ from app.core.security import (
     sanitize_identifier,
     sanitize_metadata,
 )
-from app.core.tenant_config import ProfileConfig, TenantConfigRegistry
+# Removed tenant config system
 from app.models.schemas import ChatRequest, ChatResponse
 from app.repositories.chat_repo import ChatRepo
 from app.repositories.session_repo import SessionRepo
@@ -37,13 +37,13 @@ class ChatService:
     def __init__(
         self,
         session_factory: async_sessionmaker[AsyncSession],
-        tenant_registry: TenantConfigRegistry,
+        tenant_ids: list[str],
         vector=None,
         llm=None,
         tool_manager=None,  # Tool calling disabled
     ) -> None:
         self.session_factory = session_factory
-        self.tenant_registry = tenant_registry
+        self.tenant_ids = tenant_ids
         # self.tool_manager = tool_manager or ToolManager()  # Tool calling disabled
         self.rag = RagService(
             session_factory,
@@ -61,19 +61,13 @@ class ChatService:
         request: Request,
         payload: ChatRequest,
         tenant_id: str,
-        profile_key: str,
-        profile_config: ProfileConfig,
     ) -> ChatResponse:
-        if not payload.user_id or not (payload.question or "").strip():
-            raise HTTPException(status_code=400, detail="user_id ve question zorunludur")
+        if not (payload.question or "").strip():
+            raise HTTPException(status_code=400, detail="question zorunludur")
+
+        # No user role validation needed anymore
 
         try:
-            safe_profile_key = sanitize_identifier(profile_key, label="profile_key")
-        except SecurityError as exc:
-            raise HTTPException(status_code=400, detail="Gecersiz profil") from exc
-
-        try:
-            safe_user_id = sanitize_identifier(str(payload.user_id), label="user_id")
             safe_question = ensure_safe_prompt(
                 payload.question,
                 max_length=settings.max_user_prompt_length,
@@ -91,15 +85,13 @@ class ChatService:
                 detail="Guvenlik kontrolleri istegi reddetti.",
             ) from exc
 
-        try:
-            profile_config = self.tenant_registry.get_profile(safe_tenant_id, safe_profile_key)
-        except KeyError:
-            raise HTTPException(status_code=404, detail="Profil bulunamadi")
+        # Check if tenant exists
+        if safe_tenant_id not in self.tenant_ids:
+            raise HTTPException(status_code=404, detail="Tenant bulunamadi")
 
         payload = payload.copy(
             update={
                 "question": safe_question,
-                "user_id": safe_user_id,
                 "tenant_id": safe_tenant_id,
                 "request_id": safe_request_id,
             }
@@ -113,7 +105,7 @@ class ChatService:
 
         limiter = getattr(request.app.state, "rate_limiter", None)
         if limiter:
-            limiter_key = f"{safe_tenant_id}:{safe_profile_key}:{payload.user_id}:{client_ip}"
+            limiter_key = f"{safe_tenant_id}:{client_ip}"
             try:
                 await limiter.check(limiter_key)
             except RateLimitError as exc:
@@ -133,14 +125,12 @@ class ChatService:
                     session=session,
                     req=payload,
                     tenant_id=safe_tenant_id,
-                    profile_key=safe_profile_key,
                     client_ip=client_ip,
                     user_agent=user_agent,
                 )
                 await self.chat_repo.insert_message(
                     session=session,
                     tenant_id=safe_tenant_id,
-                    profile_key=safe_profile_key,
                     session_id=session_id,
                     role="user",
                     content=payload.question,
@@ -153,14 +143,10 @@ class ChatService:
         memory_text = await self._safe_memory(
             tenant_id=safe_tenant_id,
             session_id=session_id,
-            profile_key=safe_profile_key,
-            profile_config=profile_config,
         )
         answer_result = await self.rag.answer(
             question=payload.question,
             tenant_id=safe_tenant_id,
-            profile_key=safe_profile_key,
-            profile_config=profile_config,
             memory_text=memory_text,
         )
         answer_text = (answer_result.text or "").strip()
@@ -172,7 +158,6 @@ class ChatService:
                 msg_id = await self.chat_repo.insert_message(
                     session=session,
                     tenant_id=safe_tenant_id,
-                    profile_key=safe_profile_key,
                     session_id=session_id,
                     role="assistant",
                     content=answer_text,
@@ -184,7 +169,6 @@ class ChatService:
                 await self.chat_repo.insert_history(
                     session=session,
                     tenant_id=safe_tenant_id,
-                    profile_key=safe_profile_key,
                     session_id=session_id,
                     req=payload,
                     answer=answer_text,
@@ -198,7 +182,6 @@ class ChatService:
                 await self.title.maybe_set_session_title(
                     session=session,
                     tenant_id=safe_tenant_id,
-                    profile_key=safe_profile_key,
                     session_id=session_id,
                     first_question=payload.question,
                 )
@@ -206,7 +189,7 @@ class ChatService:
         return ChatResponse(
             answer=answer_text,
             files=file_payload,
-            profile_key=safe_profile_key,
+            tenant_id=safe_tenant_id,  
             session_id=session_id,
             session_title=self._fallback_title(payload.question),
             last_activity=self._utcnow_iso(),
@@ -218,8 +201,6 @@ class ChatService:
         self,
         tenant_id: str,
         session_id: Optional[str],
-        profile_key: str,
-        profile_config: ProfileConfig,
     ) -> str:
         if not session_id:
             return ""
@@ -227,8 +208,6 @@ class ChatService:
             return await self.memory.build_memory(
                 tenant_id=tenant_id,
                 session_id=session_id,
-                profile_key=profile_key,
-                profile_config=profile_config,
             )
         except Exception as exc:  # pragma: no cover
             logger.warning("memory build failed: %s", exc)
@@ -267,4 +246,6 @@ class ChatService:
         if len(sanitized) > 80:
             sanitized = sanitized[:80].rstrip()
         return sanitized
+
+
 

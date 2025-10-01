@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-from app.core.tenant_config import ProfileConfig, ToolConfig
+# Tool system disabled - keeping minimal structure for compatibility
 
 
 class ToolExecutionError(Exception):
@@ -16,7 +16,6 @@ class ToolExecutionError(Exception):
 @dataclass
 class ToolContext:
     tenant_id: str
-    profile_key: str
     tool_config: ToolConfig
 
 
@@ -51,7 +50,6 @@ class CurrentDateTimeTool(BaseTool):
             {
                 "utc_datetime": now.isoformat(),
                 "tenant_id": context.tenant_id,
-                "profile_key": context.profile_key,
             }
         )
 
@@ -99,8 +97,6 @@ class ToolManager:
         self,
         *,
         tenant_id: str,
-        profile_key: str,
-        profile_config: ProfileConfig,
         tool_name: str,
         arguments_json: str,
     ) -> str:
@@ -119,7 +115,6 @@ class ToolManager:
 
         context = ToolContext(
             tenant_id=tenant_id,
-            profile_key=profile_key,
             tool_config=tool_cfg,
         )
         return await impl.run(arguments=arguments, context=context)

@@ -18,7 +18,6 @@ class ChatRepo:
         self,
         session: AsyncSession,
         tenant_id: str,
-        profile_key: str,
         session_id: str,
         role: str,
         content: str,
@@ -35,7 +34,6 @@ class ChatRepo:
 
         message = ChatMessage(
             tenant_id=tenant_id,
-            profile_key=profile_key,
             session_id=session_uuid,
             message_role=role,
             content=safe_content,
@@ -53,7 +51,6 @@ class ChatRepo:
             .where(
                 ChatSession.id == session_uuid,
                 ChatSession.tenant_id == tenant_id,
-                ChatSession.profile_key == profile_key,
             )
             .values(last_activity_at=datetime.now(timezone.utc))
         )
@@ -64,7 +61,6 @@ class ChatRepo:
         self,
         session: AsyncSession,
         tenant_id: str,
-        profile_key: str,
         session_id: str,
         req,
         answer: str,
@@ -85,8 +81,6 @@ class ChatRepo:
 
         history_row = ChatHistory(
             tenant_id=tenant_id,
-            profile_key=profile_key,
-            user_id=req.user_id,
             session_id=uuid.UUID(session_id),
             request_id=request_id,
             ip=ip_val,

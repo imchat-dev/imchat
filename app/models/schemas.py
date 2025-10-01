@@ -1,7 +1,8 @@
 ﻿# app/models/schemas.py
-from typing import Optional
+from typing import Optional, Literal
+import uuid
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class FileAttachment(BaseModel):
@@ -15,8 +16,7 @@ class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     question: str
-    user_id: str
-    tenant_id: Optional[str] = None
+    tenant_id: str
     session_id: Optional[str] = None
     request_id: Optional[str] = None
 
@@ -27,7 +27,7 @@ class ChatResponse(BaseModel):
     answer: str
     files: Optional[FileAttachment] = None
     status: str = "success"
-    profile_key: Optional[str] = None
+    tenant_id: Optional[str] = None
     session_id: Optional[str] = None
     session_title: Optional[str] = None
     last_activity: Optional[str] = None
@@ -39,3 +39,70 @@ class FeedbackRequest(BaseModel):
     message_id: str
     score: int
     created_at: Optional[str] = None
+
+
+# New schemas for tenant-based API
+class TenantCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    
+    name: str
+    description: Optional[str] = None
+
+
+class TenantResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    
+    id: uuid.UUID
+    name: str
+    description: Optional[str] = None
+    created_at: str
+
+
+class SessionCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    
+    title: Optional[str] = None
+
+
+class SessionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    
+    id: uuid.UUID
+    title: Optional[str] = None
+    started_at: str
+    last_activity_at: Optional[str] = None
+
+
+class MessageCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    
+    content: str
+    role: Literal["user", "assistant"] = "user"
+
+
+class MessageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    
+    id: uuid.UUID
+    content: str
+    role: str
+    created_at: str
+    model: Optional[str] = None
+
+
+class DocumentUploadRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    
+    name: str
+    filepath: str
+    ext: str
+
+
+class DocumentResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    
+    id: uuid.UUID
+    name: str
+    filepath: str
+    ext: str
+    created_at: str

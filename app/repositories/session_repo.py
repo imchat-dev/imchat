@@ -19,7 +19,6 @@ class SessionRepo:
         session: AsyncSession,
         req: ChatRequest,
         tenant_id: str,
-        profile_key: str,
         client_ip: Optional[str],
         user_agent: Optional[str],
     ) -> str:
@@ -35,8 +34,6 @@ class SessionRepo:
                 .values(
                     id=session_uuid,
                     tenant_id=tenant_id,
-                    profile_key=profile_key,
-                    user_id=req.user_id,
                     client_ip=ip_val,
                     user_agent=ua_val,
                     last_activity_at=last_activity,
@@ -45,8 +42,6 @@ class SessionRepo:
                     index_elements=[ChatSession.id],
                     set_={
                         "tenant_id": tenant_id,
-                        "profile_key": profile_key,
-                        "user_id": req.user_id,
                         "last_activity_at": last_activity,
                         "client_ip": ip_val,
                         "user_agent": ua_val,
@@ -59,8 +54,6 @@ class SessionRepo:
 
         new_session = ChatSession(
             tenant_id=tenant_id,
-            profile_key=profile_key,
-            user_id=req.user_id,
             client_ip=ip_val,
             user_agent=ua_val,
             last_activity_at=last_activity,
@@ -68,3 +61,4 @@ class SessionRepo:
         session.add(new_session)
         await session.flush()
         return str(new_session.id)
+

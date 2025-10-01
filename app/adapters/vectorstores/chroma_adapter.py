@@ -3,7 +3,7 @@
 Chroma VectorStore adaptoru.
 - load_or_create_chroma: persist klasoru ve koleksiyon ismiyle store doner.
 - build_or_refresh_index: PDF kaynaklarindan chunk'lar uretip belirtilen koleksiyona yazar.
-- retrieve_context: tenant/profil filtresi ile benzerlik aramasi yapar.
+- retrieve_context: tenant filtresi ile benzerlik aramasi yapar.
 """
 
 from __future__ import annotations
@@ -52,13 +52,12 @@ def build_or_refresh_index(
     persist_dir: Optional[str] = None,
     *,
     tenant_id: Optional[str],
-    profile_key: str,
     collection_name: Optional[str] = None,
     chunk_size: int = 1000,
     chunk_overlap: int = 50,
 ) -> Chroma:
     persist_dir = persist_dir or settings.persist_dir
-    collection = collection_name or (f"{tenant_id}_{profile_key}" if tenant_id else profile_key)
+    collection = collection_name or tenant_id or _default_collection_name()
     vector = load_or_create_chroma(persist_dir, collection_name=collection)
 
     all_docs = []
@@ -73,7 +72,6 @@ def build_or_refresh_index(
 
         for d in docs:
             md: Dict[str, str] = dict(d.metadata or {})
-            md["profile_key"] = profile_key
             md["tenant_id"] = tenant_id or settings.default_tenant_id or "default"
             d.metadata = md
         all_docs.extend(docs)
@@ -101,9 +99,8 @@ def build_or_refresh_index(
 
 
 # ---- Retrieval helper ----
-def _build_filter(tenant_id: Optional[str], profile_key: str) -> Optional[Dict[str, object]]:
+def _build_filter(tenant_id: Optional[str]) -> Optional[Dict[str, object]]:
     clauses = []
-    clauses.append({"profile_key": {"$eq": profile_key}})
     if tenant_id:
         clauses.append({"tenant_id": {"$eq": tenant_id}})
 
@@ -119,10 +116,9 @@ def retrieve_context(
     query: str,
     *,
     tenant_id: Optional[str],
-    profile_key: str,
     k: int = 6,
 ) -> str:
-    filters = _build_filter(tenant_id, profile_key)
+    filters = _build_filter(tenant_id)
     # Diagnostics for quick triage
     persist_dir = getattr(vector, "_persist_directory", None) or getattr(vector, "persist_directory", None) or settings.persist_dir
     collection_name = getattr(vector, "collection_name", None)
@@ -135,7 +131,6 @@ def retrieve_context(
         "k=", k,
         "filter=", filters,
         "tenant=", tenant_id,
-        "profile=", profile_key,
     )
     docs = vector.similarity_search(query, k=k, filter=filters)
     print("[retrieve_context] found_docs=", len(docs))

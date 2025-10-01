@@ -30,6 +30,10 @@ class Settings(BaseModel):
 
     default_tenant_id: str = os.getenv("DEFAULT_TENANT_ID", "pilot")
     # tenant_config_path: Optional[str] = os.getenv("TENANT_CONFIG_PATH")  # Disabled - using fallback config
+    
+    # CORS settings
+    cors_origins: str = os.getenv("CORS_ORIGINS", "*")
+    cors_allow_credentials: bool = os.getenv("CORS_ALLOW_CREDENTIALS", "true").lower() == "true"
 
 
 settings = Settings()

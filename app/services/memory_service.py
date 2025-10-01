@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.adapters.llm.openai_provider import get_chat_llm
 from app.core.config import settings
-from app.core.tenant_config import ProfileConfig
 from app.models.db_models import ChatMessage
 
 logger = logging.getLogger(__name__)
@@ -26,15 +25,13 @@ class MemoryService:
         self,
         tenant_id: str,
         session_id: str,
-        profile_key: str,
-        profile_config: ProfileConfig,
     ) -> str:
         try:
             history = await self._get_conversation_history(tenant_id, session_id, limit=20)
             if not history:
                 return ""
 
-            summary = await self._summarize(history, profile_key, profile_config)
+            summary = await self._summarize(history)
             recent = self._format_recent(history, limit=4)
             return (summary + recent).strip()
         except Exception as exc:  # pragma: no cover
@@ -76,7 +73,7 @@ class MemoryService:
             for row in rows
         ]
 
-    async def _summarize(self, history: List[Dict], profile_key: str, profile_config: ProfileConfig) -> str:
+    async def _summarize(self, history: List[Dict]) -> str:
         if len(history) < 4:
             return ""
         try:
@@ -86,7 +83,7 @@ class MemoryService:
                 role_label = "Kullanici" if msg["role"] == "user" else "Asistan"
                 conversation_text += f"{role_label}: {msg['content']}\n\n"
 
-            summary_context = profile_config.summary_context or profile_key
+            summary_context = "kullanici"
             prompt = (
                 "Bu {role} sohbetinin onemli noktalarini kisaca ozetle.\n\n"
                 "Kurallar:\n"

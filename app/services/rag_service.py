@@ -1,4 +1,4 @@
-# app/services/rag_service.py
+﻿# app/services/rag_service.py
 from __future__ import annotations
 
 import json
@@ -14,12 +14,9 @@ from langchain_core.prompts import PromptTemplate
 from app.adapters.vectorstores.chroma_adapter import load_or_create_chroma, retrieve_context
 from app.adapters.llm.openai_provider import get_chat_llm
 from app.core.config import settings
-from app.core.tenant_config import ProfileConfig
 # from app.services.tool_service import ToolExecutionError, ToolManager  # Tool calling disabled
 
 import uuid
-
-
 
 
 @dataclass
@@ -42,23 +39,21 @@ class RagService:
         self,
         question: str,
         tenant_id: str,
-        profile_key: str,
-        profile_config: ProfileConfig,
         memory_text: str = "",
     ) -> AnswerResult:
-        collection_name = profile_config.vector_collection
+        # Use tenant_id as collection name directly
+        collection_name = tenant_id
         vector = self._get_vector(collection_name)
         context_text = retrieve_context(
             vector,
             question,
             tenant_id=tenant_id,
-            profile_key=profile_key,
             k=6,
         )
         if not context_text.strip():
             return AnswerResult(text="Ne demek istediginizi anlayamadim")
 
-        base_template = profile_config.prompt_template or self._default_prompt(profile_key)
+        base_template = self._default_prompt()
         prompt = PromptTemplate(
             input_variables=["memory", "context", "question"],
             template=base_template,
@@ -77,8 +72,6 @@ class RagService:
         #     return await self._run_with_tools(
         #         prompt_text=prompt_text,
         #         tenant_id=tenant_id,
-        #         profile_key=profile_key,
-        #         profile_config=profile_config,
         #         tool_specs=tool_specs,
         #     )
 
@@ -91,8 +84,6 @@ class RagService:
         self,
         prompt_text: str,
         tenant_id: str,
-        profile_key: str,
-        profile_config: ProfileConfig,
         tool_specs,
     ) -> AnswerResult:
         
@@ -118,8 +109,6 @@ class RagService:
                 try:
                     tool_output = await self.tool_manager.execute(
                         tenant_id=tenant_id,
-                        profile_key=profile_key,
-                        profile_config=profile_config,
                         tool_name=name,
                         arguments_json=arguments_json,
                     )
@@ -152,8 +141,6 @@ class RagService:
         try:
             tool_output = await self.tool_manager.execute(
                 tenant_id=tenant_id,
-                profile_key=profile_key,
-                profile_config=profile_config,
                 tool_name=function_call.get("name", ""),
                 arguments_json=function_call.get("arguments", "{}"),
             )
@@ -223,7 +210,7 @@ class RagService:
             name = candidate_entry.get("file_name") or "rapor.pdf"
             raw_type = (candidate_entry.get("content_type") or "application/pdf").lower()
             content_type = "application/pdf" if "pdf" in raw_type else raw_type or "application/octet-stream"
-            # ChatResponse FileAttachment schema'sına uygun format:
+            # ChatResponse FileAttachment schema'sÄ±na uygun format:
             return {
                 "name": str(name),
                 "type": content_type,
@@ -231,7 +218,7 @@ class RagService:
                 "data": download_url.strip(),
             }
 
-        # (mevcut base64 geri dönüşü altta aynen kalsın)
+        # (mevcut base64 geri dÃ¶nÃ¼ÅŸÃ¼ altta aynen kalsÄ±n)
         data = candidate_entry.get("content_base64")
         if not isinstance(data, str) or not data.strip():
             return None
@@ -262,7 +249,7 @@ class RagService:
             text,
         )
 
-        # Sadece satır başında ya da boşluktan sonra gelen "çıplak" /downloads/... metnini sadeleştir.
+        # Sadece satÄ±r baÅŸÄ±nda ya da boÅŸluktan sonra gelen "Ã§Ä±plak" /downloads/... metnini sadeleÅŸtir.
         text = re.sub(r"(?:^|(?<=\s))/downloads/[A-Za-z0-9._%\-]+", "rapor.pdf", text)
 
         # Replace any external rapor URLs with plain filename
@@ -307,58 +294,24 @@ class RagService:
         self.llm = get_chat_llm()
         return self.llm
 
-    def _default_prompt(self, profile_key: str) -> str:
-        templates = {
-            "ogrenci": (
-                "Sen ogrencilere yardim eden site rehber asistanisin. "
-                "Sadece ogrenciler icin olan site kullanim bilgilerini kullanarak yanit ver.\n\n"
-                "ONEMLI KURALLAR:\n"
-                "1. Sadece ogrenci rehber bilgilerini kullan\n"
-                "2. Ogretmen veya mudur bilgilerini asla verme\n"
-                "3. Ogrenci olmayan kullanicilara 'Bu bilgi sadece ogrenciler icindir' de\n"
-                "4. Yanitlarini sadece Turkce ver\n"
-                "5. Dostca ve rehberlik edici bir ton kullan\n"
-                "6. Adim adim aciklamalar ver\n"
-                "7. Onceki konusmalari hatirla ve tutarli ol\n\n"
-                "{memory}Ogrenci Site Rehberi:\n{context}\n\n"
-                "Ogrenci Sorusu: {question}\n\nYanit:"
-            ),
-            "ogretmen": (
-                "Sen ogretmenlere yardim eden site rehber asistanisin. "
-                "Sadece ogretmenler icin olan site kullanim bilgilerini kullanarak yanit ver.\n\n"
-                "ONEMLI KURALLAR:\n"
-                "1. Sadece ogretmen rehber bilgilerini kullan\n"
-                "2. Ogrenci veya mudur bilgilerini asla verme\n"
-                "3. Ogretmen olmayan kullanicilara 'Bu bilgi sadece ogretmenler icindir' de\n"
-                "4. Yanitlarini sadece Turkce ver\n"
-                "5. Dostca ve rehberlik edici bir ton kullan\n"
-                "6. Adim adim aciklamalar ver\n"
-                "7. Onceki konusmalari hatirla ve tutarli ol\n\n"
-                "{memory}Ogretmen Site Rehberi:\n{context}\n\n"
-                "Ogretmen Sorusu: {question}\n\nYanit:"
-            ),
-            "yonetici": (
-                "Sen mudurlere yardim eden site rehber asistanisin. "
-                "Sadece mudurler icin olan site kullanim bilgilerini kullanarak yanit ver.\n\n"
-                "ONEMLI KURALLAR:\n"
-                "1. Sadece mudur rehber bilgilerini kullan\n"
-                "2. Ogrenci veya ogretmen bilgilerini asla verme\n"
-                "3. Site kullanimina dair bilgileri kullan\n"
-                "4. Yanitlarini sadece Turkce ver\n"
-                "5. Dostca ve rehberlik edici bir ton kullan\n"
-                "6. Adim adim aciklamalar ver\n"
-                "7. Onceki konusmalari hatirla ve tutarli ol\n"
-                "8. Ne sorulduysa sadece ona yanit ver, ekstra bilgi verme.\n"
-                "9. Dokumanda olmayan bir sey sorulduysa sadece 'Ne demek istediginizi anlayamadim' de.\n"
-                "10. Uzun cevap verme, ozet yaz.\n\n"
-                "{memory}Mudur Site Rehberi:\n{context}\n\n"
-                "Mudur Sorusu: {question}\n\nYanit:"
-            ),
-        }
-        return templates.get(
-            profile_key,
-            templates["yonetici"],
+    def _default_prompt(self) -> str:
+        # Use a generic template since we don't have user roles anymore
+        return (
+            "Sen site kullanicilarina yardim eden rehber asistanisin. "
+            "Verilen dokumanlardaki bilgileri kullanarak yanit ver.\n\n"
+            "ONEMLI KURALLAR:\n"
+            "1. Sadece verilen dokumanlardaki bilgileri kullan\n"
+            "2. Bilmedigin konularda 'Bu konuda yeterli bilgim yok' de\n"
+            "3. Detayli ve aciklayici cevaplar ver\n"
+            "4. Adim adim rehberlik et\n"
+            "5. Turkce cevap ver\n"
+            "6. Kisa ve net cevaplar ver\n\n"
+            "{memory}Site Rehberi:\n{context}\n\n"
+            "Kullanici Sorusu: {question}\n\nYanit:"
         )
+
+
+
 
 
 

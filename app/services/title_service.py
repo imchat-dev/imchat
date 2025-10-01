@@ -24,7 +24,6 @@ class TitleService:
         self,
         session: AsyncSession,
         tenant_id: str,
-        profile_key: str,
         session_id: str,
         first_question: str,
     ) -> None:
@@ -34,7 +33,6 @@ class TitleService:
             .where(
                 ChatSession.id == session_uuid,
                 ChatSession.tenant_id == tenant_id,
-                ChatSession.profile_key == profile_key,
             )
         )
         row = result.one_or_none()
@@ -49,32 +47,30 @@ class TitleService:
             .where(
                 ChatSession.id == session_uuid,
                 ChatSession.tenant_id == tenant_id,
-                ChatSession.profile_key == profile_key,
                 ChatSession.title.is_(None),
             )
             .values(title=fallback)
         )
 
         asyncio.create_task(
-            self._upgrade_title_async(tenant_id, profile_key, session_id, first_question)
+            self._upgrade_title_async(tenant_id, session_id, first_question)
         )
 
     async def _upgrade_title_async(
         self,
         tenant_id: str,
-        profile_key: str,
         session_id: str,
         first_question: str,
     ) -> None:
         try:
             llm = get_chat_llm(temperature=0.1)
             prompt = (
-                "Profil: {profile}\n"
+                "Tenant: {tenant}\n"
                 "Kullanicinin ilk mesajina gore tek satir kisa bir sohbet basligi uret.\n"
                 "- Turkce\n- 4-6 kelime\n- Ozel karakter yok\n- Bas harfler buyuk\n- Sonda nokta yok\n"
                 "Sadece basligi yaz.\n\n"
                 "Ilk mesaj: {q}"
-            ).format(profile=profile_key, q=first_question)
+            ).format(tenant=tenant_id, q=first_question)
 
             resp = await llm.ainvoke(prompt)
             better = getattr(resp, "content", str(resp)).strip()
@@ -87,7 +83,6 @@ class TitleService:
                         .where(
                             ChatSession.id == uuid.UUID(session_id),
                             ChatSession.tenant_id == tenant_id,
-                            ChatSession.profile_key == profile_key,
                         )
                         .values(title=title)
                     )

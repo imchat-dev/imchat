@@ -16,12 +16,10 @@ class FeedbackRepo:
         session: AsyncSession,
         message_id: str,
         tenant_id: str,
-        profile_key: str,
     ) -> bool:
         stmt = select(ChatMessage.id).where(
             ChatMessage.id == uuid.UUID(message_id),
             ChatMessage.tenant_id == tenant_id,
-            ChatMessage.profile_key == profile_key,
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none() is not None
@@ -31,12 +29,10 @@ class FeedbackRepo:
         session: AsyncSession,
         message_id: str,
         tenant_id: str,
-        profile_key: str,
     ) -> str | None:
         stmt = select(ChatFeedback.id).where(
             ChatFeedback.message_id == uuid.UUID(message_id),
             ChatFeedback.tenant_id == tenant_id,
-            ChatFeedback.profile_key == profile_key,
         )
         result = await session.execute(stmt)
         feedback_id = result.scalar_one_or_none()
@@ -46,14 +42,12 @@ class FeedbackRepo:
         self,
         session: AsyncSession,
         tenant_id: str,
-        profile_key: str,
         message_id: str,
         score: int,
         reason: str,
     ) -> None:
         feedback = ChatFeedback(
             tenant_id=tenant_id,
-            profile_key=profile_key,
             message_id=uuid.UUID(message_id),
             score=score,
             reason=reason,
@@ -64,7 +58,6 @@ class FeedbackRepo:
         self,
         session: AsyncSession,
         tenant_id: str,
-        profile_key: str,
         message_id: str,
         score: int,
         reason: str,
@@ -74,7 +67,6 @@ class FeedbackRepo:
             .where(
                 ChatFeedback.message_id == uuid.UUID(message_id),
                 ChatFeedback.tenant_id == tenant_id,
-                ChatFeedback.profile_key == profile_key,
             )
             .values(score=score, reason=reason, created_at=datetime.now(timezone.utc))
         )
