@@ -43,12 +43,12 @@ def _validate_uuid(uuid_str: str, field_name: str) -> uuid.UUID:
 
 
 @router.post("/{tenant_id}/docs", response_model=DocumentResponse)
-async def upload_document(tenant_id: str, request: Request, payload: DocumentUploadRequest):
+async def upload_document(tenant_id: uuid.UUID, request: Request, payload: DocumentUploadRequest):
     """Upload a document for a tenant"""
     session_factory = _get_session_factory(request)
     
     try:
-        safe_tenant_id = _validate_uuid(tenant_id, "tenant_id")
+        safe_tenant_id = tenant_id
         safe_name = sanitize_identifier(payload.name, label="document_name")
         safe_filepath = sanitize_identifier(payload.filepath, label="filepath")
         safe_ext = sanitize_identifier(payload.ext, label="extension")
@@ -91,7 +91,7 @@ async def upload_document(tenant_id: str, request: Request, payload: DocumentUpl
 
 @router.get("/{tenant_id}/docs", response_model=List[DocumentResponse])
 async def get_documents(
-    tenant_id: str, 
+    tenant_id: uuid.UUID, 
     request: Request,
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0)
@@ -100,7 +100,7 @@ async def get_documents(
     session_factory = _get_session_factory(request)
     
     try:
-        safe_tenant_id = _validate_uuid(tenant_id, "tenant_id")
+        safe_tenant_id = tenant_id
     except SecurityError as exc:
         raise HTTPException(status_code=400, detail="Gecersiz parametre") from exc
 
@@ -137,12 +137,12 @@ async def get_documents(
 
 
 @router.get("/{tenant_id}/docs/{doc_id}", response_model=DocumentResponse)
-async def get_document(tenant_id: str, doc_id: str, request: Request):
+async def get_document(tenant_id: uuid.UUID, doc_id: str, request: Request):
     """Get a specific document"""
     session_factory = _get_session_factory(request)
     
     try:
-        safe_tenant_id = _validate_uuid(tenant_id, "tenant_id")
+        safe_tenant_id = tenant_id
         safe_doc_id = _validate_uuid(doc_id, "doc_id")
     except SecurityError as exc:
         raise HTTPException(status_code=400, detail="Gecersiz parametre") from exc
@@ -168,12 +168,12 @@ async def get_document(tenant_id: str, doc_id: str, request: Request):
 
 
 @router.delete("/{tenant_id}/docs/{doc_id}")
-async def delete_document(tenant_id: str, doc_id: str, request: Request):
+async def delete_document(tenant_id: uuid.UUID, doc_id: str, request: Request):
     """Delete a document"""
     session_factory = _get_session_factory(request)
     
     try:
-        safe_tenant_id = _validate_uuid(tenant_id, "tenant_id")
+        safe_tenant_id = tenant_id
         safe_doc_id = _validate_uuid(doc_id, "doc_id")
     except SecurityError as exc:
         raise HTTPException(status_code=400, detail="Gecersiz parametre") from exc

@@ -43,12 +43,12 @@ def _validate_uuid(uuid_str: str, field_name: str) -> uuid.UUID:
 
 
 @router.post("/{tenant_id}/sessions", response_model=SessionResponse)
-async def create_session(tenant_id: str, request: Request, payload: SessionCreateRequest):
+async def create_session(tenant_id: uuid.UUID, request: Request, payload: SessionCreateRequest):
     """Create a new session for a tenant"""
     session_factory = _get_session_factory(request)
     
     try:
-        safe_tenant_id = _validate_uuid(tenant_id, "tenant_id")
+        safe_tenant_id = tenant_id
     except SecurityError as exc:
         raise HTTPException(status_code=400, detail="Gecersiz parametre") from exc
 
@@ -93,7 +93,7 @@ async def create_session(tenant_id: str, request: Request, payload: SessionCreat
 
 @router.get("/{tenant_id}/sessions", response_model=List[SessionResponse])
 async def get_sessions(
-    tenant_id: str, 
+    tenant_id: uuid.UUID, 
     request: Request, 
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0)
@@ -102,7 +102,7 @@ async def get_sessions(
     session_factory = _get_session_factory(request)
     
     try:
-        safe_tenant_id = _validate_uuid(tenant_id, "tenant_id")
+        safe_tenant_id = tenant_id
     except SecurityError as exc:
         raise HTTPException(status_code=400, detail="Gecersiz parametre") from exc
 
@@ -131,12 +131,12 @@ async def get_sessions(
 
 
 @router.get("/{tenant_id}/sessions/{session_id}", response_model=SessionResponse)
-async def get_session(tenant_id: str, session_id: str, request: Request):
+async def get_session(tenant_id: uuid.UUID, session_id: str, request: Request):
     """Get a specific session"""
     session_factory = _get_session_factory(request)
     
     try:
-        safe_tenant_id = _validate_uuid(tenant_id, "tenant_id")
+        safe_tenant_id = tenant_id
         safe_session_id = _validate_uuid(session_id, "session_id")
     except SecurityError as exc:
         raise HTTPException(status_code=400, detail="Gecersiz parametre") from exc
@@ -161,12 +161,12 @@ async def get_session(tenant_id: str, session_id: str, request: Request):
 
 
 @router.delete("/{tenant_id}/sessions/{session_id}")
-async def delete_session(tenant_id: str, session_id: str, request: Request):
+async def delete_session(tenant_id: uuid.UUID, session_id: str, request: Request):
     """Delete a session"""
     session_factory = _get_session_factory(request)
     
     try:
-        safe_tenant_id = _validate_uuid(tenant_id, "tenant_id")
+        safe_tenant_id = tenant_id
         safe_session_id = _validate_uuid(session_id, "session_id")
     except SecurityError as exc:
         raise HTTPException(status_code=400, detail="Gecersiz parametre") from exc

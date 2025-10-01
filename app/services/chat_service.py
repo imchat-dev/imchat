@@ -60,7 +60,7 @@ class ChatService:
         self,
         request: Request,
         payload: ChatRequest,
-        tenant_id: str,
+        tenant_id: uuid.UUID,
     ) -> ChatResponse:
         if not (payload.question or "").strip():
             raise HTTPException(status_code=400, detail="question zorunludur")
@@ -72,9 +72,9 @@ class ChatService:
                 payload.question,
                 max_length=settings.max_user_prompt_length,
             )
-            # Convert tenant_id to UUID if it's a string
-            tenant_uuid = uuid.UUID(tenant_id) if isinstance(tenant_id, str) else tenant_id
-            safe_tenant_id = str(tenant_uuid)
+            # tenant_id is already a UUID
+            tenant_uuid = tenant_id
+            safe_tenant_id = tenant_uuid
             safe_request_id = (
                 sanitize_identifier(str(payload.request_id), label="request_id")
                 if payload.request_id
@@ -107,7 +107,7 @@ class ChatService:
 
         limiter = getattr(request.app.state, "rate_limiter", None)
         if limiter:
-            limiter_key = f"{safe_tenant_id}:{client_ip}"
+            limiter_key = f"{str(safe_tenant_id)}:{client_ip}"
             try:
                 await limiter.check(limiter_key)
             except RateLimitError as exc:
@@ -143,12 +143,12 @@ class ChatService:
 
         t0 = time.perf_counter()
         memory_text = await self._safe_memory(
-            tenant_id=safe_tenant_id,
+            tenant_id=str(safe_tenant_id),
             session_id=session_id,
         )
         answer_result = await self.rag.answer(
             question=payload.question,
-            tenant_id=safe_tenant_id,
+            tenant_id=str(safe_tenant_id),
             memory_text=memory_text,
         )
         answer_text = (answer_result.text or "").strip()
@@ -183,7 +183,7 @@ class ChatService:
 
                 await self.title.maybe_set_session_title(
                     session=session,
-                    tenant_id=safe_tenant_id,
+                    tenant_id=str(safe_tenant_id),
                     session_id=session_id,
                     first_question=payload.question,
                 )

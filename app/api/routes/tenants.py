@@ -74,14 +74,11 @@ async def create_tenant(request: Request, payload: TenantCreateRequest):
 
 
 @router.get("/{tenant_id}", response_model=TenantResponse)
-async def get_tenant(tenant_id: str, request: Request):
+async def get_tenant(tenant_id: uuid.UUID, request: Request):
     """Get tenant information"""
     session_factory = _get_session_factory(request)
     
-    try:
-        safe_tenant_id = uuid.UUID(tenant_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Gecersiz tenant ID format")
+    safe_tenant_id = tenant_id
 
     async with session_factory() as session:
         stmt = select(Tenant).where(Tenant.id == safe_tenant_id)

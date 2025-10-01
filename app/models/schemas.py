@@ -16,7 +16,7 @@ class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     question: str
-    tenant_id: str
+    tenant_id: uuid.UUID
     session_id: Optional[str] = None
     request_id: Optional[str] = None
 
@@ -27,7 +27,7 @@ class ChatResponse(BaseModel):
     answer: str
     files: Optional[FileAttachment] = None
     status: str = "success"
-    tenant_id: Optional[str] = None
+    tenant_id: Optional[uuid.UUID] = None
     session_id: Optional[str] = None
     session_title: Optional[str] = None
     last_activity: Optional[str] = None

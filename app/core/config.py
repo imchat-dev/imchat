@@ -28,7 +28,7 @@ class Settings(BaseModel):
     rate_limit_window_seconds: int = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
     max_user_prompt_length: int = int(os.getenv("MAX_USER_PROMPT_LENGTH", "4000"))
 
-    default_tenant_id: str = os.getenv("DEFAULT_TENANT_ID", "pilot")
+    default_tenant_id: str = os.getenv("DEFAULT_TENANT_ID", "00000000-0000-0000-0000-000000000001")
     # tenant_config_path: Optional[str] = os.getenv("TENANT_CONFIG_PATH")  # Disabled - using fallback config
     
     # CORS settings

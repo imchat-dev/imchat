@@ -17,7 +17,7 @@ class ChatRepo:
     async def insert_message(
         self,
         session: AsyncSession,
-        tenant_id: str,
+        tenant_id: uuid.UUID,
         session_id: str,
         role: str,
         content: str,
@@ -33,7 +33,7 @@ class ChatRepo:
         session_uuid = uuid.UUID(session_id)
 
         message = ChatMessage(
-            tenant_id=tenant_id,
+            tenant_id=str(tenant_id),
             session_id=session_uuid,
             message_role=role,
             content=safe_content,
@@ -50,7 +50,7 @@ class ChatRepo:
             update(ChatSession)
             .where(
                 ChatSession.id == session_uuid,
-                ChatSession.tenant_id == tenant_id,
+                ChatSession.tenant_id == str(tenant_id),
             )
             .values(last_activity_at=datetime.now(timezone.utc))
         )
@@ -60,7 +60,7 @@ class ChatRepo:
     async def insert_history(
         self,
         session: AsyncSession,
-        tenant_id: str,
+        tenant_id: uuid.UUID,
         session_id: str,
         req,
         answer: str,
@@ -80,7 +80,7 @@ class ChatRepo:
         safe_answer = sanitize_text(answer, max_length=settings.max_user_prompt_length)
 
         history_row = ChatHistory(
-            tenant_id=tenant_id,
+            tenant_id=str(tenant_id),
             session_id=uuid.UUID(session_id),
             request_id=request_id,
             ip=ip_val,

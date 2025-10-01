@@ -44,7 +44,7 @@ def _validate_uuid(uuid_str: str, field_name: str) -> uuid.UUID:
 
 @router.post("/{tenant_id}/sessions/{session_id}/messages", response_model=MessageResponse)
 async def create_message(
-    tenant_id: str, 
+    tenant_id: uuid.UUID, 
     session_id: str, 
     request: Request, 
     payload: MessageCreateRequest
@@ -53,7 +53,7 @@ async def create_message(
     session_factory = _get_session_factory(request)
     
     try:
-        safe_tenant_id = _validate_uuid(tenant_id, "tenant_id")
+        safe_tenant_id = tenant_id
         safe_session_id = _validate_uuid(session_id, "session_id")
     except SecurityError as exc:
         raise HTTPException(status_code=400, detail="Gecersiz parametre") from exc
@@ -102,7 +102,7 @@ async def create_message(
 
 @router.get("/{tenant_id}/sessions/{session_id}/messages", response_model=List[MessageResponse])
 async def get_messages(
-    tenant_id: str, 
+    tenant_id: uuid.UUID, 
     session_id: str, 
     request: Request,
     limit: int = Query(100, ge=1, le=500),
@@ -112,7 +112,7 @@ async def get_messages(
     session_factory = _get_session_factory(request)
     
     try:
-        safe_tenant_id = _validate_uuid(tenant_id, "tenant_id")
+        safe_tenant_id = tenant_id
         safe_session_id = _validate_uuid(session_id, "session_id")
     except SecurityError as exc:
         raise HTTPException(status_code=400, detail="Gecersiz parametre") from exc
@@ -159,7 +159,7 @@ async def get_messages(
 
 @router.delete("/{tenant_id}/sessions/{session_id}/messages/{message_id}")
 async def delete_message(
-    tenant_id: str, 
+    tenant_id: uuid.UUID, 
     session_id: str, 
     message_id: str, 
     request: Request,
@@ -168,7 +168,7 @@ async def delete_message(
     session_factory = _get_session_factory(request)
     
     try:
-        safe_tenant_id = _validate_uuid(tenant_id, "tenant_id")
+        safe_tenant_id = tenant_id
         safe_session_id = _validate_uuid(session_id, "session_id")
         safe_message_id = _validate_uuid(message_id, "message_id")
     except SecurityError as exc:

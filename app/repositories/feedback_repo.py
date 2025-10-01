@@ -15,11 +15,11 @@ class FeedbackRepo:
         self,
         session: AsyncSession,
         message_id: str,
-        tenant_id: str,
+        tenant_id: uuid.UUID,
     ) -> bool:
         stmt = select(ChatMessage.id).where(
             ChatMessage.id == uuid.UUID(message_id),
-            ChatMessage.tenant_id == tenant_id,
+            ChatMessage.tenant_id == str(tenant_id),
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none() is not None
@@ -28,11 +28,11 @@ class FeedbackRepo:
         self,
         session: AsyncSession,
         message_id: str,
-        tenant_id: str,
+        tenant_id: uuid.UUID,
     ) -> str | None:
         stmt = select(ChatFeedback.id).where(
             ChatFeedback.message_id == uuid.UUID(message_id),
-            ChatFeedback.tenant_id == tenant_id,
+            ChatFeedback.tenant_id == str(tenant_id),
         )
         result = await session.execute(stmt)
         feedback_id = result.scalar_one_or_none()
@@ -41,13 +41,13 @@ class FeedbackRepo:
     async def insert_feedback(
         self,
         session: AsyncSession,
-        tenant_id: str,
+        tenant_id: uuid.UUID,
         message_id: str,
         score: int,
         reason: str,
     ) -> None:
         feedback = ChatFeedback(
-            tenant_id=tenant_id,
+            tenant_id=str(tenant_id),
             message_id=uuid.UUID(message_id),
             score=score,
             reason=reason,
@@ -57,7 +57,7 @@ class FeedbackRepo:
     async def update_feedback(
         self,
         session: AsyncSession,
-        tenant_id: str,
+        tenant_id: uuid.UUID,
         message_id: str,
         score: int,
         reason: str,
@@ -66,7 +66,7 @@ class FeedbackRepo:
             update(ChatFeedback)
             .where(
                 ChatFeedback.message_id == uuid.UUID(message_id),
-                ChatFeedback.tenant_id == tenant_id,
+                ChatFeedback.tenant_id == str(tenant_id),
             )
             .values(score=score, reason=reason, created_at=datetime.now(timezone.utc))
         )

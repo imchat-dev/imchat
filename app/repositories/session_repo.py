@@ -18,7 +18,7 @@ class SessionRepo:
         self,
         session: AsyncSession,
         req: ChatRequest,
-        tenant_id: str,
+        tenant_id: uuid.UUID,
         client_ip: Optional[str],
         user_agent: Optional[str],
     ) -> str:
@@ -33,7 +33,7 @@ class SessionRepo:
                 insert(ChatSession)
                 .values(
                     id=session_uuid,
-                    tenant_id=tenant_id,
+                    tenant_id=str(tenant_id),
                     client_ip=ip_val,
                     user_agent=ua_val,
                     last_activity_at=last_activity,
@@ -41,7 +41,7 @@ class SessionRepo:
                 .on_conflict_do_update(
                     index_elements=[ChatSession.id],
                     set_={
-                        "tenant_id": tenant_id,
+                        "tenant_id": str(tenant_id),
                         "last_activity_at": last_activity,
                         "client_ip": ip_val,
                         "user_agent": ua_val,
@@ -53,7 +53,7 @@ class SessionRepo:
             return str(result.scalar_one())
 
         new_session = ChatSession(
-            tenant_id=tenant_id,
+            tenant_id=str(tenant_id),
             client_ip=ip_val,
             user_agent=ua_val,
             last_activity_at=last_activity,
