@@ -13,7 +13,7 @@ from app.core.security import sanitize_identifier, SecurityError
 from app.models.db_models import ChatMessage, ChatSession, Tenant
 from app.models.schemas import MessageCreateRequest, MessageResponse
 
-router = APIRouter()
+router = APIRouter(prefix="/tenants")
 
 
 def _get_session_factory(request: Request):
@@ -42,7 +42,7 @@ def _validate_uuid(uuid_str: str, field_name: str) -> uuid.UUID:
         raise HTTPException(status_code=400, detail=f"Gecersiz {field_name} format")
 
 
-@router.post("/{tenant_id}/sessions/{session_id}/messages", response_model=MessageResponse)
+@router.post("/{tenant_id}/sessions/{session_id}/messages", response_model=MessageResponse, status_code=201)
 async def create_message(
     tenant_id: uuid.UUID, 
     session_id: str, 

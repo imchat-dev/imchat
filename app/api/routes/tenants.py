@@ -14,7 +14,7 @@ from app.core.security import sanitize_identifier, SecurityError
 from app.models.db_models import Base, Tenant
 from app.models.schemas import TenantCreateRequest, TenantResponse
 
-router = APIRouter()
+router = APIRouter(prefix="/tenants")
 
 
 def _get_session_factory(request: Request):
@@ -35,7 +35,7 @@ def _to_iso_with_tz(dt) -> Optional[str]:
         return str(dt)
 
 
-@router.post("/", response_model=TenantResponse)
+@router.post("", response_model=TenantResponse, status_code=201)
 async def create_tenant(request: Request, payload: TenantCreateRequest):
     """Create a new tenant"""
     session_factory = _get_session_factory(request)
@@ -96,7 +96,7 @@ async def get_tenant(tenant_id: uuid.UUID, request: Request):
         )
 
 
-@router.get("/list", response_model=List[TenantResponse])
+@router.get("", response_model=List[TenantResponse])
 async def list_tenants(request: Request, limit: int = 100, offset: int = 0):
     """List all tenants"""
     session_factory = _get_session_factory(request)
@@ -115,4 +115,3 @@ async def list_tenants(request: Request, limit: int = 100, offset: int = 0):
             )
             for tenant in tenants
         ]
-

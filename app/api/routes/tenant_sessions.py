@@ -1,4 +1,4 @@
-﻿# app/api/routes/tenant_sessions.py
+# app/api/routes/tenant_sessions.py
 from __future__ import annotations
 
 import uuid
@@ -13,7 +13,7 @@ from app.core.security import sanitize_identifier, SecurityError
 from app.models.db_models import ChatSession, Tenant
 from app.models.schemas import SessionCreateRequest, SessionResponse
 
-router = APIRouter()
+router = APIRouter(prefix="/tenants")
 
 
 def _get_session_factory(request: Request):
@@ -42,7 +42,7 @@ def _validate_uuid(uuid_str: str, field_name: str) -> uuid.UUID:
         raise HTTPException(status_code=400, detail=f"Gecersiz {field_name} format")
 
 
-@router.post("/{tenant_id}/sessions", response_model=SessionResponse)
+@router.post("/{tenant_id}/sessions", response_model=SessionResponse, status_code=201)
 async def create_session(tenant_id: uuid.UUID, request: Request, payload: SessionCreateRequest):
     """Create a new session for a tenant"""
     session_factory = _get_session_factory(request)
@@ -188,4 +188,3 @@ async def delete_session(tenant_id: uuid.UUID, session_id: str, request: Request
             await session.delete(chat_session)
             
             return {"status": "ok", "deleted": True, "session_id": str(safe_session_id)}
-

@@ -13,7 +13,7 @@ from app.core.security import sanitize_identifier, SecurityError
 from app.models.db_models import Base, Tenant, Document
 from app.models.schemas import DocumentUploadRequest, DocumentResponse
 
-router = APIRouter()
+router = APIRouter(prefix="/tenants")
 
 
 def _get_session_factory(request: Request):
@@ -42,28 +42,30 @@ def _validate_uuid(uuid_str: str, field_name: str) -> uuid.UUID:
         raise HTTPException(status_code=400, detail=f"Gecersiz {field_name} format")
 
 
-@router.post("/{tenant_id}/docs", response_model=DocumentResponse)
+@router.post("/{tenant_id}/docs", response_model=DocumentResponse, status_code=201)
 async def upload_document(tenant_id: uuid.UUID, request: Request, payload: DocumentUploadRequest):
     """Upload a document for a tenant"""
     session_factory = _get_session_factory(request)
     
-    try:
-        safe_tenant_id = tenant_id
-        safe_name = sanitize_identifier(payload.name, label="document_name")
-        safe_filepath = sanitize_identifier(payload.filepath, label="filepath")
-        safe_ext = sanitize_identifier(payload.ext, label="extension")
-    except SecurityError as exc:
-        raise HTTPException(status_code=400, detail="Gecersiz parametre") from exc
+    safe_tenant_id = tenant_id
 
     async with session_factory() as session:
         async with session.begin():
-            # Verify tenant exists
+            # Verify tenant exists FIRST before sanitizing inputs
             tenant_stmt = select(Tenant).where(Tenant.id == safe_tenant_id)
             tenant_result = await session.execute(tenant_stmt)
             tenant = tenant_result.scalar_one_or_none()
             
             if not tenant:
                 raise HTTPException(status_code=404, detail="Tenant bulunamadi")
+            
+            # Now sanitize inputs after tenant check
+            try:
+                safe_name = sanitize_identifier(payload.name, label="document_name")
+                safe_filepath = sanitize_identifier(payload.filepath, label="filepath")
+                safe_ext = sanitize_identifier(payload.ext, label="extension")
+            except SecurityError as exc:
+                raise HTTPException(status_code=400, detail="Gecersiz parametre") from exc
             
             # Create document record
             doc_id = uuid.uuid4()

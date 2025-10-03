@@ -1,4 +1,4 @@
-﻿# app/main.py
+# app/main.py
 import logging
 
 from fastapi import FastAPI
@@ -27,11 +27,14 @@ app = FastAPI(
 )
 
 # Register specific routes before generic ones to avoid conflicts
-app.include_router(tenants_router, prefix="/chat", tags=["tenants"])
-app.include_router(tenant_sessions_router, prefix="/chat", tags=["tenant-sessions"])
-app.include_router(tenant_messages_router, prefix="/chat", tags=["tenant-messages"])
-app.include_router(tenant_docs_router, prefix="/chat", tags=["tenant-docs"])
+# CRITICAL: Tenant management routers stay ahead of generic chat routes to avoid conflicts
+# /api/tenants paths remain isolated from /chat/{tenant_id}
+app.include_router(tenants_router, prefix="/api", tags=["tenants"])
+app.include_router(tenant_sessions_router, prefix="/api", tags=["tenant-sessions"])
+app.include_router(tenant_messages_router, prefix="/api", tags=["tenant-messages"])
+app.include_router(tenant_docs_router, prefix="/api", tags=["tenant-docs"])
 # app.include_router(sessions_router, prefix="/chat", tags=["sessions"])  # Removed - using tenant-based endpoints
+# Chat router MUST be last because it has a generic /{tenant} catch-all route
 app.include_router(chat_router, prefix="/chat", tags=["chat"])
 app.include_router(downloads_router, tags=["downloads"])
 app.include_router(health_router, tags=["health"])
@@ -53,4 +56,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
-
